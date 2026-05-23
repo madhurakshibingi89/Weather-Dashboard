@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Real-Time Weather Dashboard</title>
+
+  <style>
+    *{
+      margin:0;
+      padding:0;
+      box-sizing:border-box;
+      font-family: Arial, Helvetica, sans-serif;
+    }
+
+    body{
+      min-height:100vh;
+      background: linear-gradient(135deg,#0f172a,#1e293b,#334155);
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      padding:20px;
+      color:white;
+    }
+
+    .weather-app{
+      width:100%;
+      max-width:900px;
+      background: rgba(255,255,255,0.08);
+      backdrop-filter: blur(12px);
+      border:1px solid rgba(255,255,255,0.15);
+      border-radius:24px;
+      padding:30px;
+      box-shadow:0 10px 40px rgba(0,0,0,0.4);
+    }
+
+    .header{
+      text-align:center;
+      margin-bottom:30px;
+    }
+
+    .header h1{
+      font-size:2.4rem;
+      margin-bottom:10px;
+    }
+
+    .header p{
+      color:#cbd5e1;
+      font-size:1rem;
+    }
+
+    .search-box{
+      display:flex;
+      gap:15px;
+      margin-bottom:25px;
+      flex-wrap:wrap;
+    }
+
+    .search-box input{
+      flex:1;
+      padding:15px;
+      border:none;
+      border-radius:14px;
+      outline:none;
+      font-size:1rem;
+      background:white;
+      color:#111827;
+    }
+
+    .search-box button{
+      padding:15px 24px;
+      border:none;
+      border-radius:14px;
+      background:#38bdf8;
+      color:white;
+      font-size:1rem;
+      cursor:pointer;
+      transition:0.3s;
+      font-weight:bold;
+    }
+
+    .search-box button:hover{
+      background:#0ea5e9;
+      transform:translateY(-2px);
+    }
+
+    .quick-cities{
+      display:flex;
+      gap:10px;
+      margin-bottom:25px;
+      flex-wrap:wrap;
+    }
+
+    .city-btn{
+      padding:10px 16px;
+      border:none;
+      border-radius:12px;
+      background:rgba(255,255,255,0.12);
+      color:white;
+      cursor:pointer;
+      transition:0.3s;
+    }
+
+    .city-btn:hover{
+      background:#38bdf8;
+    }
+
+    .loading,
+    .error-message{
+      text-align:center;
+      margin-bottom:20px;
+      font-size:1rem;
+      display:none;
+    }
+
+    .error-message{
+      color:#fca5a5;
+    }
+
+    .weather-container{
+      display:none;
+      animation:fadeIn 0.5s ease;
+    }
+
+    @keyframes fadeIn{
+      from{
+        opacity:0;
+        transform:translateY(10px);
+      }
+      to{
+        opacity:1;
+        transform:translateY(0);
+      }
+    }
+
+    .top-section{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      flex-wrap:wrap;
+      gap:20px;
+      margin-bottom:30px;
+    }
+
+    .city-info h2{
+      font-size:2rem;
+      margin-bottom:8px;
+    }
+
+    .city-info p{
+      color:#cbd5e1;
+    }
+
+    .temperature{
+      text-align:right;
+    }
+
+    .temperature h1{
+      font-size:4rem;
+    }
+
+    .temperature p{
+      color:#cbd5e1;
+      font-size:1.1rem;
+    }
+
+    .weather-grid{
+      display:grid;
+      grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+      gap:20px;
+    }
+
+    .card{
+      background:rgba(255,255,255,0.08);
+      padding:25px;
+      border-radius:18px;
+      text-align:center;
+      transition:0.3s;
+      border:1px solid rgba(255,255,255,0.08);
+    }
+
+    .card:hover{
+      transform:translateY(-5px);
+      background:rgba(255,255,255,0.12);
+    }
+
+    .card h3{
+      margin-bottom:12px;
+      color:#cbd5e1;
+      font-size:1rem;
+    }
+
+    .card p{
+      font-size:1.8rem;
+      font-weight:bold;
+    }
+
+    .footer{
+      margin-top:25px;
+      text-align:center;
+      color:#cbd5e1;
+      font-size:0.9rem;
+    }
+
+    @media(max-width:768px){
+
+      .top-section{
+        flex-direction:column;
+        align-items:flex-start;
+      }
+
+      .temperature{
+        text-align:left;
+      }
+
+      .temperature h1{
+        font-size:3rem;
+      }
+
+      .header h1{
+        font-size:2rem;
+      }
+
+      .search-box{
+        flex-direction:column;
+      }
+
+      .search-box button{
+        width:100%;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="weather-app">
+
+    <div class="header">
+      <h1>Weather Dashboard</h1>
+      <p>Real-time weather data using Async JavaScript & REST APIs</p>
+    </div>
+
+    <div class="search-box">
+      <input
+        type="text"
+        id="cityInput"
+        placeholder="Enter city name..."
+      />
+      <button id="searchBtn">Search Weather</button>
+    </div>
+
+    <div class="quick-cities">
+      <button class="city-btn">Hyderabad</button>
+      <button class="city-btn">Mumbai</button>
+      <button class="city-btn">Delhi</button>
+      <button class="city-btn">Chennai</button>
+      <button class="city-btn">Bengaluru</button>
+    </div>
+
+    <div class="loading" id="loading">
+      Fetching live weather data...
+    </div>
+
+    <div class="error-message" id="errorMessage">
+      Unable to fetch weather data. Please try again.
+    </div>
+
+    <div class="weather-container" id="weatherContainer">
+
+      <div class="top-section">
+
+        <div class="city-info">
+          <h2 id="cityName">City Name</h2>
+          <p id="weatherCondition">Weather Condition</p>
+        </div>
+
+        <div class="temperature">
+          <h1 id="temperature">0°C</h1>
+          <p>Live Temperature</p>
+        </div>
+
+      </div>
+
+      <div class="weather-grid">
+
+        <div class="card">
+          <h3>Humidity</h3>
+          <p id="humidity">0%</p>
+        </div>
+
+        <div class="card">
+          <h3>Wind Speed</h3>
+          <p id="windSpeed">0 km/h</p>
+        </div>
+
+        <div class="card">
+          <h3>Feels Like</h3>
+          <p id="feelsLike">0°C</p>
+        </div>
+
+        <div class="card">
+          <h3>Pressure</h3>
+          <p id="pressure">0 hPa</p>
+        </div>
+
+      </div>
+
+    </div>
+
+    <div class="footer">
+      Powered by OpenWeatherMap REST API
+    </div>
+
+  </div>
+
+  <script>
+    // ==========================
+    // API CONFIGURATION
+    // ==========================
+
+    const API_KEY = "YOUR_API_KEY_HERE";
+
+    // ==========================
+    // DOM ELEMENTS
+    // ==========================
+
+    const cityInput = document.getElementById("cityInput");
+    const searchBtn = document.getElementById("searchBtn");
+
+    const loading = document.getElementById("loading");
+    const errorMessage = document.getElementById("errorMessage");
+    const weatherContainer = document.getElementById("weatherContainer");
+
+    const cityName = document.getElementById("cityName");
+    const weatherCondition = document.getElementById("weatherCondition");
+    const temperature = document.getElementById("temperature");
+    const humidity = document.getElementById("humidity");
+    const windSpeed = document.getElementById("windSpeed");
+    const feelsLike = document.getElementById("feelsLike");
+    const pressure = document.getElementById("pressure");
+
+    // ==========================
+    // FETCH WEATHER DATA
+    // ==========================
+
+    async function fetchWeather(city){
+
+      try{
+
+        // Show loading
+        loading.style.display = "block";
+        errorMessage.style.display = "none";
+        weatherContainer.style.display = "none";
+
+        // API URL
+        const url =
+          `https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${API_KEY}&units=metric`;
+
+        // Fetch API request
+        const response = await fetch(url);
+
+        // Error handling
+        if(!response.ok){
+          throw new Error("City not found");
+        }
+
+        // Parse JSON
+        const data = await response.json();
+
+        // Render weather data
+        displayWeather(data);
+
+      }catch(error){
+
+        errorMessage.style.display = "block";
+        errorMessage.textContent =
+          `Error: ${error.message}`;
+
+      }finally{
+
+        loading.style.display = "none";
+      }
+    }
+
+    // ==========================
+    // DISPLAY WEATHER DATA
+    // ==========================
+
+    function displayWeather(data){
+
+      // Nested JSON parsing
+      cityName.textContent =
+        `${data.name}, ${data.sys.country}`;
+
+      weatherCondition.textContent =
+        data.weather[0].description;
+
+      temperature.textContent =
+        `${Math.round(data.main.temp)}°C`;
+
+      humidity.textContent =
+        `${data.main.humidity}%`;
+
+      windSpeed.textContent =
+        `${data.wind.speed} km/h`;
+
+      feelsLike.textContent =
+        `${Math.round(data.main.feels_like)}°C`;
+
+      pressure.textContent =
+        `${data.main.pressure} hPa`;
+
+      // Show weather container
+      weatherContainer.style.display = "block";
+    }
+
+    // ==========================
+    // SEARCH BUTTON EVENT
+    // ==========================
+
+    searchBtn.addEventListener("click", () => {
+
+      const city = cityInput.value.trim();
+
+      if(city === ""){
+        errorMessage.style.display = "block";
+        errorMessage.textContent =
+          "Please enter a city name.";
+        return;
+      }
+
+      fetchWeather(city);
+    });
+
+    // ==========================
+    // ENTER KEY SUPPORT
+    // ==========================
+
+    cityInput.addEventListener("keypress", (event) => {
+
+      if(event.key === "Enter"){
+        searchBtn.click();
+      }
+    });
+
+    // ==========================
+    // QUICK CITY BUTTONS
+    // ==========================
+
+    const cityButtons =
+      document.querySelectorAll(".city-btn");
+
+    cityButtons.forEach(button => {
+
+      button.addEventListener("click", () => {
+
+        const city = button.textContent;
+
+        cityInput.value = city;
+
+        fetchWeather(city);
+      });
+    });
+
+    // ==========================
+    // DEFAULT CITY ON LOAD
+    // ==========================
+
+    fetchWeather("Hyderabad");
+  </script>
+
+</body>
+</html>
